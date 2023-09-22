@@ -7,7 +7,7 @@
   <!-- Plugin specific properties -->
   <PropertyGroup>
     <Product>Shoutout</Product>
-    <Description>Self-host your podcast and start Podcasting 2.0 like a pro.</Description>
+    <Description>Display a public shoutout wall, where visitors can pay to display their name and shoutout text.</Description>
     <Authors>d11n</Authors>
     <Version>1.0.0</Version>
   </PropertyGroup>
