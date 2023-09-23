@@ -144,7 +144,13 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
                 StoreId = new [] { store.Id },
                 TextSearch = AppService.GetAppSearchTerm(app),
                 StartDate = fs.GetFilterDate("startdate", 0),
-                EndDate = fs.GetFilterDate("enddate", 0)
+                EndDate = fs.GetFilterDate("enddate", 0),
+                Status = new[]
+                {
+                    InvoiceState.ToString(InvoiceStatusLegacy.Paid),
+                    InvoiceState.ToString(InvoiceStatusLegacy.Confirmed),
+                    InvoiceState.ToString(InvoiceStatusLegacy.Complete)
+                }
             };
 
             var invoices = await _invoiceRepository.GetInvoices(invoiceQuery);
