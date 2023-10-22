@@ -13,6 +13,7 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
 using BTCPayServer.Forms;
+using BTCPayServer.Plugins.Shoutout.Services;
 using BTCPayServer.Plugins.Shoutout.ViewModels;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Invoices;
@@ -31,12 +32,14 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
     {
         private readonly CurrencyNameTable _currencies;
         private readonly AppService _appService;
+        private readonly ShoutoutService _shoutoutService;
         private readonly InvoiceRepository _invoiceRepository;
         private readonly UIInvoiceController _invoiceController;
         private readonly FormDataService _formDataService;
 
         public UIShoutoutController(
             AppService appService,
+            ShoutoutService shoutoutService,
             CurrencyNameTable currencies,
             FormDataService formDataService,
             InvoiceRepository invoiceRepository,
@@ -44,6 +47,7 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
         {
             _currencies = currencies;
             _appService = appService;
+            _shoutoutService = shoutoutService;
             _formDataService = formDataService;
             _invoiceRepository = invoiceRepository;
             _invoiceController = invoiceController;
@@ -78,7 +82,9 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
                 ShowHeader = settings.ShowHeader,
                 ShowRelativeDate = settings.ShowRelativeDate,
                 MinAmount = settings.MinAmount,
-                ButtonText = settings.ButtonText
+                ButtonText = settings.ButtonText,
+                LightningAddressIdentifier = settings.LightningAddressIdentifier,
+                LnurlEnabled = _shoutoutService.IsLnurlEnabled(store)
             };
             return View(vm);
         }
@@ -112,7 +118,8 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
                 ShowHeader = vm.ShowHeader,
                 ShowRelativeDate = vm.ShowRelativeDate,
                 MinAmount = vm.MinAmount,
-                ButtonText = vm.ButtonText
+                ButtonText = vm.ButtonText,
+                LightningAddressIdentifier = vm.LightningAddressIdentifier
             };
 
             app.Name = vm.AppName;
@@ -158,7 +165,7 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
                 .Select(i => i.Metadata.AdditionalData.TryGetValue("shoutout", out var shoutout)
                     ? new ShoutoutViewModel
                     {
-                        Amount = i.PaidAmount.Net,
+                        Amount = i.PaidAmount.Net > 0 ? i.PaidAmount.Net : i.Price,
                         Currency = i.Currency,
                         Timestamp = i.InvoiceTime,
                         Name = shoutout["name"]?.ToString(),
@@ -277,6 +284,8 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers
                 ShowRelativeDate = settings.ShowRelativeDate,
                 ButtonText = settings.ButtonText,
                 MinAmount = settings.MinAmount,
+                LightningAddress = settings.LightningAddressIdentifier,
+                LnurlEnabled = _shoutoutService.IsLnurlEnabled(store),
                 Shoutout = shoutout,
                 Shoutouts = shoutouts
             };

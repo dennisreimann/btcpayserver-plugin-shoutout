@@ -5,6 +5,7 @@
 @{
     ViewData.SetActivePage(AppsNavPages.Update, "Update Shoutout", Model.Id);
 	Csp.UnsafeEval();
+    var storeId = Context.GetCurrentStoreId();
 }
 
 <form method="post" class="mb-5">
@@ -45,6 +46,29 @@
                         <label asp-for="Title" class="form-label" data-required></label>
                         <input asp-for="Title" class="form-control" required />
                         <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="form-group">
+                        <label asp-for="LightningAddressIdentifier" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="LightningAddressIdentifier" class="form-control" />
+                            <span class="input-group-text">@@@Context.Request.Host</span>
+                        </div>
+                        <div class="form-text">
+                            Optional Lightning Address that receives shoutouts.
+                            @if (!Model.LnurlEnabled)
+                            {
+                                <span>
+                                    In order to use the Lightning Address option, Lightning must be available and LNURL
+                                    needs to be enabled (including the comment option). It can be set up in the
+                                    <a asp-controller="UIStores" asp-action="LightningSettings" asp-route-cryptoCode="BTC" asp-route-storeId="@storeId" class="alert-link">Lightning Settings</a>.
+                                </span>
+                            }
+                        </div>
+                        <span asp-validation-for="LightningAddressIdentifier" class="text-danger"></span>
                     </div>
                 </div>
             </div>

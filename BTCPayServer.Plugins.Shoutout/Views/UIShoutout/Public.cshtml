@@ -17,82 +17,92 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
     <div class="public-page-wrap" style="max-width:540px">
-        @if (Model.ShowHeader)
-        {
-            <partial name="_StoreHeader" model="(title, Model.LogoFileId)" />
-        }
-        <main class="flex-grow-1 container" style="max-width:576px">
-            <partial name="_StatusMessage" />
-            @if (!string.IsNullOrEmpty(Model.Description))
-            {
-                <div class="mb-4">@Safe.Raw(Model.Description)</div>
-            }
-            <form method="post" class="mb-5">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label asp-for="Shoutout.Name" class="form-label"></label>
-                            <input asp-for="Shoutout.Name" class="form-control"/>
-                            <span asp-validation-for="Shoutout.Name" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label asp-for="Shoutout.Amount" class="form-label" data-required></label>
-                            <div class="input-group">
-                                <input asp-for="Shoutout.Amount" type="number" inputmode="decimal" class="form-control hide-number-spin" min="0" step="any" required/>
-                                <span class="input-group-text">@Model.Currency</span>
+        <main class="flex-grow-1 container">
+            <div class="d-flex flex-column justify-content-center gap-4">
+                @if (Model.ShowHeader)
+                {
+                    <partial name="_StoreHeader" model="(title, Model.LogoFileId)" />
+                }
+                <partial name="_StatusMessage" />
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div>@Safe.Raw(Model.Description)</div>
+                }
+                <form method="post">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label asp-for="Shoutout.Name" class="form-label"></label>
+                                <input asp-for="Shoutout.Name" class="form-control"/>
+                                <span asp-validation-for="Shoutout.Name" class="text-danger"></span>
                             </div>
-                            <span asp-validation-for="Shoutout.Amount" class="text-danger"></span>
                         </div>
-                    </div>
-                    @if (Model.MinAmount > 0)
-                    {
-                        <div class="col-12 form-text mt-n3 mb-4">
-                            Minimum amount for displaying the shoutout is
-                            @DisplayFormatter.Currency(Model.MinAmount, Model.Currency, DisplayFormatter.CurrencyFormat.Symbol).
-                        </div>
-                    }
-                </div>
-                <div class="form-group">
-                    <label asp-for="Shoutout.Text" class="form-label" data-required></label>
-                    <textarea asp-for="Shoutout.Text" class="form-control" rows="4" required></textarea>
-                    <span asp-validation-for="Shoutout.Text" class="text-danger"></span>
-                </div>
-                <div class="form-group text-center">
-                    <input type="submit" class="btn btn-primary" name="command" value="@Safe.Raw(Model.ButtonText)"/>
-                </div>
-            </form>
-            @if (Model.Shoutouts != null)
-            {
-                <div id="shoutouts" class="mb-5">
-                    @if (Model.Shoutouts.Any())
-                    {
-                        @foreach (var entry in Model.Shoutouts)
-                        {
-                            <div class="card mb-4">
-                                <h6 class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom-0 pb-0">
-                                    <span>@(string.IsNullOrEmpty(entry.Name) ? "Anonymous" : entry.Name)</span>
-                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                                        <span class="badge bg-light fs-6">
-                                            @DisplayFormatter.Currency(entry.Amount, entry.Currency, DisplayFormatter.CurrencyFormat.Symbol)
-                                        </span>
-                                        @entry.Timestamp.ToBrowserDate(Model.ShowRelativeDate ? ViewsRazor.DateDisplayFormat.Relative : ViewsRazor.DateDisplayFormat.Localized)
-                                    </div>
-                                </h6>
-                                <div class="card-body">
-                                    @Safe.Raw(entry.Text)
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label asp-for="Shoutout.Amount" class="form-label" data-required></label>
+                                <div class="input-group">
+                                    <input asp-for="Shoutout.Amount" type="number" inputmode="decimal" class="form-control hide-number-spin" min="0" step="any" required/>
+                                    <span class="input-group-text">@Model.Currency</span>
                                 </div>
+                                <span asp-validation-for="Shoutout.Amount" class="text-danger"></span>
+                            </div>
+                        </div>
+                        @if (Model.MinAmount > 0)
+                        {
+                            <div class="col-12 form-text mt-n3 mb-4">
+                                Minimum amount for displaying the shoutout is
+                                @DisplayFormatter.Currency(Model.MinAmount, Model.Currency, DisplayFormatter.CurrencyFormat.Symbol).
                             </div>
                         }
-                        <vc:pager view-model="Model" />
-                    }
-                    else
-                    {
-                        <p class="text-secondary text-center">There are no shoutouts yet.</p>
-                    }
-                </div>
-            }
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Shoutout.Text" class="form-label" data-required></label>
+                        <textarea asp-for="Shoutout.Text" class="form-control" rows="4" required></textarea>
+                        <span asp-validation-for="Shoutout.Text" class="text-danger"></span>
+                    </div>
+                    <div class="form-group text-center">
+                        <input type="submit" class="btn btn-primary" name="command" value="@Safe.Raw(Model.ButtonText)"/>
+                    </div>
+                </form>
+                @if (Model.LnurlEnabled)
+                {
+                    var lightingAddress = string.IsNullOrEmpty(Model.LightningAddress) ? null : $"{Model.LightningAddress}@{Context.Request.Host}";
+                    <p class="text-center text-muted mt-n3">
+                        You can also send your shoutout to the Lightning&nbsp;Address
+                        <a href="lightning:@lightingAddress">@lightingAddress</a>
+                    </p>
+                }
+                @if (Model.Shoutouts != null)
+                {
+                    <div id="shoutouts" class="d-flex flex-column justify-content-center gap-4">
+                        @if (Model.Shoutouts.Any())
+                        {
+                            @foreach (var entry in Model.Shoutouts)
+                            {
+                                <div class="card">
+                                    <h6 class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom-0 pb-0">
+                                        <span>@(string.IsNullOrEmpty(entry.Name) ? "Anonymous" : entry.Name)</span>
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                            <span class="badge bg-light fs-6">
+                                                @DisplayFormatter.Currency(entry.Amount, entry.Currency, DisplayFormatter.CurrencyFormat.Symbol)
+                                            </span>
+                                            @entry.Timestamp.ToBrowserDate(Model.ShowRelativeDate ? ViewsRazor.DateDisplayFormat.Relative : ViewsRazor.DateDisplayFormat.Localized)
+                                        </div>
+                                    </h6>
+                                    <div class="card-body">
+                                        @Safe.Raw(entry.Text)
+                                    </div>
+                                </div>
+                            }
+                            <vc:pager view-model="Model" />
+                        }
+                        else
+                        {
+                            <p class="text-secondary text-center mb-0">There are no shoutouts yet.</p>
+                        }
+                    </div>
+                }
+            </div>
         </main>
         <footer class="store-footer">
             <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">

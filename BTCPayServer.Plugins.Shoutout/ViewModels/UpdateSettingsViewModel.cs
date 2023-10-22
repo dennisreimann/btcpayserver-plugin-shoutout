@@ -25,6 +25,10 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels
         public string AppId { get; set; }
         public string SearchTerm { get; set; }
         public string Description { get; set; }
+
+        [Display(Name = "Lightning Address Identifier")]
+        public string LightningAddressIdentifier { get; set; }
+        public bool LnurlEnabled { get; set; }
         public bool Archived { get; set; }
 
         [Display(Name = "Show the store header")]

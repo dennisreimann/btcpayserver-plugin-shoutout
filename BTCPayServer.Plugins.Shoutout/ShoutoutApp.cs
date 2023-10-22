@@ -47,8 +47,10 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
 
     public override Task<string> ConfigureLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(UIShoutoutController.UpdateSettings),
-            "UIShoutout", new { appId = app.Id }, _btcPayServerOptions.Value.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(
+            nameof(UIShoutoutController.UpdateSettings),
+            nameof(UIShoutoutController).TrimEnd("Controller", StringComparison.InvariantCulture),
+            new { appId = app.Id }, _btcPayServerOptions.Value.RootPath)!);
     }
 
     public override Task<object?> GetInfo(AppData appData)
@@ -65,8 +67,10 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
 
     public override Task<string> ViewLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(UIShoutoutController.Public),
-            "UIShoutout", new { appId = app.Id }, _btcPayServerOptions.Value.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(
+            nameof(UIShoutoutController.Public),
+            nameof(UIShoutoutController).TrimEnd("Controller", StringComparison.InvariantCulture),
+            new { appId = app.Id }, _btcPayServerOptions.Value.RootPath)!);
     }
 
     public Task<SalesStats> GetSalesStats(AppData app, InvoiceEntity[] paidInvoices, int numberOfDays)

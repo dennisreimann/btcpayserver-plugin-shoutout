@@ -1,0 +1,15 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+@section PageHeadContent {
+    <partial name="_LayoutShoutoutHead" />
+    @await RenderSectionAsync("ShoutoutHead", false)
+}
+
+@section PageFootContent {
+    <partial name="_LayoutShoutoutFoot" />
+    @await RenderSectionAsync("ShoutoutFoot", false)
+}
+
+@RenderBody()
