@@ -28,31 +28,15 @@ using StoreData = BTCPayServer.Data.StoreData;
 namespace BTCPayServer.Plugins.Shoutout.Controllers;
 
 [AutoValidateAntiforgeryToken]
-public class UIShoutoutController : Controller
+public class UIShoutoutController(
+    AppService appService,
+    ShoutoutService shoutoutService,
+    CurrencyNameTable currencies,
+    FormDataService formDataService,
+    InvoiceRepository invoiceRepository,
+    UIInvoiceController invoiceController)
+    : Controller
 {
-    private readonly CurrencyNameTable _currencies;
-    private readonly AppService _appService;
-    private readonly ShoutoutService _shoutoutService;
-    private readonly InvoiceRepository _invoiceRepository;
-    private readonly UIInvoiceController _invoiceController;
-    private readonly FormDataService _formDataService;
-
-    public UIShoutoutController(
-        AppService appService,
-        ShoutoutService shoutoutService,
-        CurrencyNameTable currencies,
-        FormDataService formDataService,
-        InvoiceRepository invoiceRepository,
-        UIInvoiceController invoiceController)
-    {
-        _currencies = currencies;
-        _appService = appService;
-        _shoutoutService = shoutoutService;
-        _formDataService = formDataService;
-        _invoiceRepository = invoiceRepository;
-        _invoiceController = invoiceController;
-    }
-
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [HttpGet("{appId}/settings/shoutout")]
     public IActionResult UpdateSettings(string appId)
@@ -84,7 +68,7 @@ public class UIShoutoutController : Controller
             MinAmount = settings.MinAmount,
             ButtonText = settings.ButtonText,
             LightningAddressIdentifier = settings.LightningAddressIdentifier,
-            LnurlEnabled = _shoutoutService.IsLnurlEnabled(store)
+            LnurlEnabled = shoutoutService.IsLnurlEnabled(store)
         };
         return View(vm);
     }
@@ -102,7 +86,7 @@ public class UIShoutoutController : Controller
 
         var storeBlob = GetCurrentStore().GetStoreBlob();
         vm.Currency = GetStoreDefaultCurrentIfEmpty(storeBlob, vm.Currency);
-        if (_currencies.GetCurrencyData(vm.Currency, false) == null)
+        if (currencies.GetCurrencyData(vm.Currency, false) == null)
             ModelState.AddModelError(nameof(vm.Currency), "Invalid currency");
 
         if (!ModelState.IsValid)
@@ -125,7 +109,7 @@ public class UIShoutoutController : Controller
         app.Name = vm.AppName;
         app.Archived = vm.Archived;
         app.SetSettings(settings);
-        await _appService.UpdateOrCreateApp(app);
+        await appService.UpdateOrCreateApp(app);
         TempData[WellKnownTempData.SuccessMessage] = "The settings have been updated";
         return RedirectToAction(nameof(UpdateSettings), new { appId });
     }
@@ -136,7 +120,7 @@ public class UIShoutoutController : Controller
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
     public async Task<IActionResult> Public(string appId, int skip = 0, int count = 50)
     {
-        var app = await _appService.GetApp(appId, ShoutoutApp.AppType, true);
+        var app = await appService.GetApp(appId, ShoutoutApp.AppType, true);
         if (app == null)
             return NotFound();
 
@@ -160,7 +144,7 @@ public class UIShoutoutController : Controller
             }
         };
 
-        var invoices = await _invoiceRepository.GetInvoices(invoiceQuery);
+        var invoices = await invoiceRepository.GetInvoices(invoiceQuery);
         var shoutouts = invoices
             .Select(i => i.Metadata.AdditionalData.TryGetValue("shoutout", out var shoutout)
                 ? new ShoutoutViewModel
@@ -188,7 +172,7 @@ public class UIShoutoutController : Controller
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
     public async Task<IActionResult> Public(string appId, ShoutoutViewModel shoutout)
     {
-        var app = await _appService.GetApp(appId, ShoutoutApp.AppType, true);
+        var app = await appService.GetApp(appId, ShoutoutApp.AppType, true);
         if (app == null)
             return NotFound();
 
@@ -199,7 +183,7 @@ public class UIShoutoutController : Controller
         }
 
         var form = GetForm(shoutout);
-        if (!_formDataService.Validate(form, ModelState))
+        if (!formDataService.Validate(form, ModelState))
         {
             var vm = GetPublicViewModel(app, shoutout);
             return View(vm);
@@ -211,7 +195,7 @@ public class UIShoutoutController : Controller
         try
         {
             var orderUrl = Request.GetDisplayUrl();
-            var request = _formDataService.GenerateInvoiceParametersFromForm(form);
+            var request = formDataService.GenerateInvoiceParametersFromForm(form);
             var metadata = new InvoiceMetadata
             {
                 ItemCode = ShoutoutApp.ItemCode,
@@ -219,7 +203,7 @@ public class UIShoutoutController : Controller
                 OrderId = AppService.GetRandomOrderId(),
                 OrderUrl = orderUrl
             }.ToJObject();
-            metadata.Merge(_formDataService.GetValues(form));
+            metadata.Merge(formDataService.GetValues(form));
 
             request.Metadata = metadata;
             request.Currency = settings.Currency;
@@ -228,7 +212,7 @@ public class UIShoutoutController : Controller
                 RedirectURL = orderUrl
             };
             request.AdditionalSearchTerms = new[] { AppService.GetAppSearchTerm(app) };
-            var invoice = await _invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), new List<string> { AppService.GetAppInternalTag(appId) });
+            var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), new List<string> { AppService.GetAppInternalTag(appId) });
 
             return RedirectToAction(nameof(UIInvoiceController.Checkout), "UIInvoice", new { invoiceId = invoice.Id });
         }
@@ -285,7 +269,7 @@ public class UIShoutoutController : Controller
             ButtonText = settings.ButtonText,
             MinAmount = settings.MinAmount,
             LightningAddress = settings.LightningAddressIdentifier,
-            LnurlEnabled = _shoutoutService.IsLnurlEnabled(store),
+            LnurlEnabled = shoutoutService.IsLnurlEnabled(store),
             Shoutout = shoutout,
             Shoutouts = shoutouts
         };

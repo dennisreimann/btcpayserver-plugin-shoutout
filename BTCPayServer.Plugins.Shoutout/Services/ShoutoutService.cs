@@ -14,32 +14,23 @@ using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.Plugins.Shoutout.Services;
 
-public class ShoutoutService
+public class ShoutoutService(
+    LinkGenerator linkGenerator,
+    BTCPayNetworkProvider networkProvider)
 {
     private const string CryptoCode = "BTC";
     internal const int CommentLength = 2000;
     internal static readonly LightMoney MinSendable = new(1, LightMoneyUnit.Satoshi);
     internal static readonly LightMoney MaxSendable = LightMoney.FromUnit(6.12m, LightMoneyUnit.BTC);
 
-    private readonly LinkGenerator _linkGenerator;
-    private readonly BTCPayNetworkProvider _networkProvider;
-
-    public ShoutoutService(
-        LinkGenerator linkGenerator,
-        BTCPayNetworkProvider networkProvider)
-    {
-        _linkGenerator = linkGenerator;
-        _networkProvider = networkProvider;
-    }
-
-    public BTCPayNetwork Network => _networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
+    public BTCPayNetwork Network => networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
 
     public PaymentMethodId GetLnurlPaymentMethodId(StoreData store, out LNURLPaySupportedPaymentMethod lnurlSettings)
     {
         lnurlSettings = null;
         var pmi = new PaymentMethodId(CryptoCode, PaymentTypes.LNURLPay);
         var lnpmi = new PaymentMethodId(CryptoCode, PaymentTypes.LightningLike);
-        var methods = store.GetSupportedPaymentMethods(_networkProvider);
+        var methods = store.GetSupportedPaymentMethods(networkProvider);
         var lnUrlMethod = methods.FirstOrDefault(method => method.PaymentId == pmi) as LNURLPaySupportedPaymentMethod;
         var lnMethod = methods.FirstOrDefault(method => method.PaymentId == lnpmi);
         if (lnUrlMethod is null || lnMethod is null)
@@ -60,7 +51,7 @@ public class ShoutoutService
             MaxSendable = MaxSendable,
             CommentAllowed = CommentLength,
             Metadata = JsonConvert.SerializeObject(metadata),
-            Callback = new Uri(_linkGenerator.GetUriByAction(
+            Callback = new Uri(linkGenerator.GetUriByAction(
                 action: nameof(LnurlController.LnurlPayCallback),
                 nameof(LnurlController).TrimEnd("Controller", StringComparison.InvariantCulture),
                 values: new { appId }, request.Scheme, request.Host, request.PathBase) ?? string.Empty)
