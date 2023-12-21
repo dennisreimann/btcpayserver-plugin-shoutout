@@ -18,6 +18,7 @@ public class PublicViewModel : BasePagingViewModel
     public string Currency { get; set; }
     public string LightningAddress { get; set; }
     public bool LnurlEnabled { get; set; }
+    public StoreBrandingViewModel StoreBranding { get; set; }
     public ShoutoutViewModel Shoutout { get; set; }
     public List<ShoutoutViewModel> Shoutouts { get; set; }
     public override int CurrentPageCount => Shoutouts.Count;

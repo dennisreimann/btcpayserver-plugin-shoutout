@@ -13,6 +13,7 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
 using BTCPayServer.Forms;
+using BTCPayServer.Models;
 using BTCPayServer.Plugins.Shoutout.Services;
 using BTCPayServer.Plugins.Shoutout.ViewModels;
 using BTCPayServer.Services.Apps;
@@ -269,6 +270,7 @@ public class UIShoutoutController(
             ButtonText = settings.ButtonText,
             MinAmount = settings.MinAmount,
             LightningAddress = settings.LightningAddressIdentifier,
+            StoreBranding = new StoreBrandingViewModel(storeBlob),
             LnurlEnabled = shoutoutService.IsLnurlEnabled(store),
             Shoutout = shoutout,
             Shoutouts = shoutouts

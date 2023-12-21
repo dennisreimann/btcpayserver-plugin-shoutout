@@ -8,6 +8,7 @@
 @{
     var title = string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title;
     ViewData["Title"] = title;
+    ViewData["StoreBranding"] = Model.StoreBranding;
     Layout = null;
 }
 <!DOCTYPE html>
@@ -21,7 +22,7 @@
             <div class="d-flex flex-column justify-content-center gap-4">
                 @if (Model.ShowHeader)
                 {
-                    <partial name="_StoreHeader" model="(title, Model.LogoFileId)" />
+                    <partial name="_StoreHeader" model="(title, Model.StoreBranding)" />
                 }
                 <partial name="_StatusMessage" />
                 @if (!string.IsNullOrEmpty(Model.Description))
