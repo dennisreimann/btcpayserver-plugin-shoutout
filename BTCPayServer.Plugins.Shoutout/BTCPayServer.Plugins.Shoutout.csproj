@@ -8,7 +8,7 @@
     <Product>Shoutout</Product>
     <Description>Display a public shoutout wall, where visitors can pay to display their name and shoutout text.</Description>
     <Authors>d11n</Authors>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
   </PropertyGroup>
 
   <!-- Plugin development properties -->
