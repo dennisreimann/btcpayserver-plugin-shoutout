@@ -8,6 +8,16 @@
     var storeId = Context.GetCurrentStoreId();
 }
 
+@section PageHeadContent {
+    <link href="~/vendor/summernote/summernote-bs5.css" rel="stylesheet" asp-append-version="true" />
+}
+
+@section PageFootContent {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/vendor/summernote/summernote-bs5.js" asp-append-version="true"></script>
+}
+
+
 <form method="post" class="mb-5">
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
@@ -140,12 +150,3 @@
 </div>
 
 <partial name="_Confirm" model="@(new ConfirmModel("Delete app", "This app will be removed from this store.", "Delete"))" />
-
-@section PageHeadContent {
-    <link href="~/vendor/summernote/summernote-bs5.css" rel="stylesheet" asp-append-version="true" />
-}
-
-@section PageFootContent {
-    <partial name="_ValidationScriptsPartial" />
-    <script src="~/vendor/summernote/summernote-bs5.js" asp-append-version="true"></script>
-}

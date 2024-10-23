@@ -1,8 +1,8 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Configuration;
 using BTCPayServer.Data;
 using BTCPayServer.Plugins.PointOfSale.Models;
@@ -24,14 +24,14 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
     public const string ItemCode = "shoutout";
 
     private static readonly ViewPointOfSaleViewModel.Item[] Items =
-    {
+    [
         new()
         {
             Id = ItemCode,
             Title = "Shoutout",
             PriceType = ViewPointOfSaleViewModel.ItemPriceType.Topup
         }
-    };
+    ];
 
     public ShoutoutApp(
         LinkGenerator linkGenerator,
@@ -73,12 +73,12 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
             new { appId = app.Id }, _btcPayServerOptions.Value.RootPath)!);
     }
 
-    public Task<SalesStats> GetSalesStats(AppData app, InvoiceEntity[] paidInvoices, int numberOfDays)
+    public Task<AppSalesStats> GetSalesStats(AppData app, InvoiceEntity[] paidInvoices, int numberOfDays)
     {
         return AppService.GetSalesStatswithPOSItems(Items, paidInvoices, numberOfDays);
     }
 
-    public Task<IEnumerable<ItemStats>> GetItemStats(AppData appData, InvoiceEntity[] paidInvoices)
+    public Task<IEnumerable<AppItemStats>> GetItemStats(AppData appData, InvoiceEntity[] paidInvoices)
     {
         var item = Items.First();
         var settings = appData.GetSettings<ShoutoutSettings>();
@@ -91,7 +91,7 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
             {
                 var total = entities.Sum(entity => entity.FiatPrice);
                 var itemCode = entities.Key;
-                return new ItemStats
+                return new AppItemStats
                 {
                     ItemCode = itemCode,
                     Title = item.Title ?? itemCode,
@@ -101,6 +101,6 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
                 };
             })
             .OrderByDescending(stats => stats.SalesCount);
-        return Task.FromResult<IEnumerable<ItemStats>>(itemCount);
+        return Task.FromResult<IEnumerable<AppItemStats>>(itemCount);
     }
 }

@@ -97,6 +97,12 @@
                             }
                             <vc:pager view-model="Model" />
                         }
+                        else if (Model.Skip > 0)
+                        {
+                            <p class="text-secondary text-center mb-0">There are no more shoutouts.</p>
+
+                            <vc:pager view-model="Model" />
+                        }
                         else
                         {
                             <p class="text-secondary text-center mb-0">There are no shoutouts yet.</p>
@@ -107,7 +113,7 @@
         </main>
         <footer class="store-footer">
             <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
-                Powered by <partial name="_StoreFooterLogo" />
+                <span text-translate="true">Powered by</span> <partial name="_StoreFooterLogo" />
             </a>
         </footer>
     </div>

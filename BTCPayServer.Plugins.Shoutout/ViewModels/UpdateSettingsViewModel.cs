@@ -4,44 +4,44 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels
 {
     public class UpdateSettingsViewModel
     {
-        public string StoreId { get; set; }
-        public string StoreName { get; set; }
-        public string StoreDefaultCurrency { get; set; }
+        public string? StoreId { get; init; }
+        public string? StoreName { get; init; }
+        public string? StoreDefaultCurrency { get; init; }
 
         [Required]
         [MaxLength(50)]
         [MinLength(1)]
         [Display(Name = "App Name")]
-        public string AppName { get; set; }
+        public string? AppName { get; init; }
 
         [Required]
         [MaxLength(30)]
         [Display(Name = "Display Title")]
-        public string Title { get; set; }
+        public string? Title { get; init; }
         [MaxLength(5)]
-        public string Currency { get; set; }
+        public string? Currency { get; set; }
 
-        public string Id { get; set; }
-        public string AppId { get; set; }
-        public string SearchTerm { get; set; }
-        public string Description { get; set; }
+        public string? Id { get; init; }
+        public string? AppId { get; init; }
+        public string? SearchTerm { get; init; }
+        public string? Description { get; init; }
 
         [Display(Name = "Lightning Address Identifier")]
-        public string LightningAddressIdentifier { get; set; }
-        public bool LnurlEnabled { get; set; }
-        public bool Archived { get; set; }
+        public string? LightningAddressIdentifier { get; init; }
+        public bool LnurlEnabled { get; init; }
+        public bool Archived { get; init; }
 
         [Display(Name = "Show the store header")]
-        public bool ShowHeader { get; set; }
+        public bool ShowHeader { get; init; }
 
         [Display(Name = "Show dates in relative format")]
-        public bool ShowRelativeDate { get; set; }
+        public bool ShowRelativeDate { get; init; }
 
         [Required]
         [Display(Name = "Button Text")]
-        public string ButtonText { get; set; }
+        public string? ButtonText { get; init; }
 
         [Display(Name = "Minimum amount required for displaying the shoutout")]
-        public decimal MinAmount { get; set; }
+        public decimal MinAmount { get; init; }
     }
 }

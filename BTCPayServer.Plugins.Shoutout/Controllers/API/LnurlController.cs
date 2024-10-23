@@ -9,18 +9,14 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Events;
 using BTCPayServer.Lightning;
-using BTCPayServer.Payments;
 using BTCPayServer.Payments.Lightning;
 using BTCPayServer.Plugins.Shoutout.Services;
-using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Invoices;
 using LNURL;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NBitcoin;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Plugins.Shoutout.Controllers.API;
@@ -35,7 +31,8 @@ public class LnurlController(
     EventAggregator eventAggregator,
     LightningLikePaymentHandler lightningLikePaymentHandler,
     LinkGenerator linkGenerator,
-    IPluginHookService pluginHookService)
+    IPluginHookService pluginHookService,
+    PaymentMethodHandlerDictionary pmHandlers)
     : ControllerBase
 {
     [HttpGet("{appId}/pay")]
@@ -58,7 +55,7 @@ public class LnurlController(
     }
 
     [HttpGet("{appId}/pay-callback")]
-    public async Task<IActionResult> LnurlPayCallback(string appId, [FromQuery] long? amount = null, string comment = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> LnurlPayCallback(string appId, [FromQuery] long? amount = null, string? comment = null, CancellationToken cancellationToken = default)
     {
         var app = await appService.GetApp(appId, ShoutoutApp.AppType, true);
         if (app == null)
@@ -71,11 +68,11 @@ public class LnurlController(
         var settings = app.GetSettings<ShoutoutSettings>();
         var title = settings.Title ?? app.Name;
         var metadata = new List<string[]> { new[] { "text/plain", title } };
-        string lnAddress = null;
+        string? lnAddress = null;
         if (!string.IsNullOrEmpty(settings.LightningAddressIdentifier))
         {
             lnAddress = $"{settings.LightningAddressIdentifier}@{Request.Host}";
-            metadata.Add(new[] { "text/identifier", lnAddress });
+            metadata.Add(["text/identifier", lnAddress]);
         }
         var payRequest = shoutoutService.GetLnurlPayRequest(Request, app.Id, metadata);
         if (amount is null)
@@ -107,37 +104,39 @@ public class LnurlController(
                     { "shoutout", new JObject { { "text", comment } } }
                 }
             }.ToJObject();
-            var pmi = shoutoutService.GetLnurlPaymentMethodId(store, out _);
+            var network = shoutoutService.Network;
+            var pmi = shoutoutService.GetLnurlPaymentMethodId(store, out var lnurlSettings);
+            var lnConfig = pmHandlers.GetLightningConfig(store, network);
+            if (pmi is null || lnConfig is null || lnurlSettings is null) return NotFound("Lightning and LNURL must be enabled");
+
             var request = new CreateInvoiceRequest
             {
                 Checkout = new InvoiceDataBase.CheckoutOptions
                 {
-                    PaymentMethods = new[] { pmi.ToStringNormalized() },
+                    PaymentMethods = [pmi.ToString()],
                     RedirectURL = orderUrl
                 },
                 Currency = "SATS",
                 Amount = lightMoney.ToUnit(LightMoneyUnit.Satoshi),
                 Metadata = invoiceMetadata,
-                AdditionalSearchTerms = new[] { AppService.GetAppSearchTerm(app) }
+                AdditionalSearchTerms = [AppService.GetAppSearchTerm(app)]
             };
 
-            var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), new List<string> { AppService.GetAppInternalTag(appId) }, cancellationToken);
-            var lightningPaymentMethod = invoice.GetPaymentMethod(pmi);
-            var paymentMethodDetails = lightningPaymentMethod?.GetPaymentMethodDetails() as LNURLPayPaymentMethodDetails;
-            if (paymentMethodDetails?.LightningSupportedPaymentMethod is null)
-                return NotFound("Lightning and LNURL must be enabled");
+            var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(),
+                [AppService.GetAppInternalTag(appId)], cancellationToken);
+            var lightningPaymentMethod = invoice.GetPaymentPrompt(pmi);
+            var handler = (LNURLPayPaymentHandler)pmHandlers[pmi];
+            var promptDetails = handler.ParsePaymentPromptDetails(lightningPaymentMethod!.Details);
+            promptDetails.PayRequest = payRequest;
+            promptDetails.ProvidedComment = comment;
 
-            paymentMethodDetails.PayRequest = payRequest;
-            paymentMethodDetails.ProvidedComment = comment;
-
-            if (await pluginHookService.ApplyFilter("modify-lnurlp-description", paymentMethodDetails.PayRequest.Metadata) is not string description)
+            if (await pluginHookService.ApplyFilter("modify-lnurlp-description", promptDetails.PayRequest.Metadata) is not string description)
                 return NotFound(GetError("LNURL pay request metadata is not valid"));
 
             var storeBlob = store.GetStoreBlob();
             try
             {
-                var network = shoutoutService.Network;
-                var client = lightningLikePaymentHandler.CreateLightningClient(paymentMethodDetails.LightningSupportedPaymentMethod, network);
+                var client = lightningLikePaymentHandler.CreateLightningClient(lnConfig);
                 var expiry = invoice.ExpirationTime.ToUniversalTime() - DateTimeOffset.UtcNow;
                 var param = new CreateInvoiceParams(lightMoney, description, expiry)
                 {
@@ -151,12 +150,13 @@ public class LnurlController(
                     return BadRequest(GetError("Could not generate invoice with a valid description hash"));
                 }
 
-                paymentMethodDetails.InvoiceId = lnInvoice.Id;
-                paymentMethodDetails.BOLT11 = lnInvoice.BOLT11;
-                paymentMethodDetails.PaymentHash = string.IsNullOrEmpty(lnInvoice.PaymentHash) ? null : uint256.Parse(lnInvoice.PaymentHash);
-                paymentMethodDetails.Preimage = string.IsNullOrEmpty(lnInvoice.Preimage) ? null : uint256.Parse(lnInvoice.Preimage);
-                paymentMethodDetails.GeneratedBoltAmount = lightMoney;
-                paymentMethodDetails.ConsumedLightningAddress = lnAddress;
+                promptDetails.InvoiceId = lnInvoice.Id;
+                promptDetails.PaymentHash = string.IsNullOrEmpty(lnInvoice.PaymentHash) ? null : uint256.Parse(lnInvoice.PaymentHash);
+                promptDetails.Preimage = string.IsNullOrEmpty(lnInvoice.Preimage) ? null : uint256.Parse(lnInvoice.Preimage);
+                promptDetails.GeneratedBoltAmount = lightMoney;
+                promptDetails.ConsumedLightningAddress = lnAddress;
+                lightningPaymentMethod.Destination = lnInvoice.BOLT11;
+                lightningPaymentMethod.Details = JToken.FromObject(promptDetails, handler.Serializer);
             }
             catch (Exception ex)
             {
@@ -164,11 +164,10 @@ public class LnurlController(
                 return BadRequest(GetError($"Could not generate invoice with description hash{msg}"));
             }
 
-            lightningPaymentMethod.SetPaymentMethodDetails(paymentMethodDetails);
-            await invoiceRepository.UpdateInvoicePaymentMethod(invoice.Id, lightningPaymentMethod);
-            eventAggregator.Publish(new InvoiceNewPaymentDetailsEvent(invoice.Id, paymentMethodDetails, pmi));
+            await invoiceRepository.UpdatePrompt(invoice.Id, lightningPaymentMethod);
+            eventAggregator.Publish(new InvoiceNewPaymentDetailsEvent(invoice.Id, promptDetails, pmi));
 
-            LNURLPayRequest.LNURLPayRequestCallbackResponse.ILNURLPayRequestSuccessAction successAction = null;
+            LNURLPayRequest.LNURLPayRequestCallbackResponse.ILNURLPayRequestSuccessAction? successAction = null;
             if ((invoice.ReceiptOptions?.Enabled ?? storeBlob.ReceiptOptions.Enabled) is true)
             {
                 successAction = new LNURLPayRequest.LNURLPayRequestCallbackResponse.LNURLPayRequestSuccessActionUrl
@@ -184,8 +183,8 @@ public class LnurlController(
             return Ok(new LNURLPayRequest.LNURLPayRequestCallbackResponse
             {
                 Disposable = true,
-                Routes = Array.Empty<string>(),
-                Pr = paymentMethodDetails.BOLT11,
+                Routes = [],
+                Pr = lightningPaymentMethod.Destination,
                 SuccessAction = successAction
             });
         }

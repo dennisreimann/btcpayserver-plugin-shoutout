@@ -16,6 +16,7 @@ using BTCPayServer.Forms;
 using BTCPayServer.Models;
 using BTCPayServer.Plugins.Shoutout.Services;
 using BTCPayServer.Plugins.Shoutout.ViewModels;
+using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
@@ -31,6 +32,7 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers;
 [AutoValidateAntiforgeryToken]
 public class UIShoutoutController(
     AppService appService,
+    UriResolver uriResolver,
     ShoutoutService shoutoutService,
     CurrencyNameTable currencies,
     FormDataService formDataService,
@@ -79,13 +81,13 @@ public class UIShoutoutController(
     public async Task<IActionResult> UpdateSettings(string appId, UpdateSettingsViewModel vm)
     {
         var app = GetCurrentApp();
-        if (app == null)
-            return NotFound();
+        var store = GetCurrentStore();
+        if (app == null || store == null) return NotFound();
 
         if (!ModelState.IsValid)
             return View(vm);
 
-        var storeBlob = GetCurrentStore().GetStoreBlob();
+        var storeBlob = store.GetStoreBlob();
         vm.Currency = GetStoreDefaultCurrentIfEmpty(storeBlob, vm.Currency);
         if (currencies.GetCurrencyData(vm.Currency, false) == null)
             ModelState.AddModelError(nameof(vm.Currency), "Invalid currency");
@@ -133,16 +135,11 @@ public class UIShoutoutController(
             Take = count,
             Skip = skip,
             IncludeArchived = true,
-            StoreId = new [] { store.Id },
+            StoreId = [store.Id],
             TextSearch = AppService.GetAppSearchTerm(app),
             StartDate = fs.GetFilterDate("startdate", 0),
             EndDate = fs.GetFilterDate("enddate", 0),
-            Status = new[]
-            {
-                InvoiceState.ToString(InvoiceStatusLegacy.Paid),
-                InvoiceState.ToString(InvoiceStatusLegacy.Confirmed),
-                InvoiceState.ToString(InvoiceStatusLegacy.Complete)
-            }
+            Status = [InvoiceStatus.Settled.ToString(), InvoiceStatus.Processing.ToString()]
         };
 
         var invoices = await invoiceRepository.GetInvoices(invoiceQuery);
@@ -157,10 +154,13 @@ public class UIShoutoutController(
                     Text = shoutout["text"]?.ToString()
                 }
                 : null)
-            .Where(s => s != null && !string.IsNullOrEmpty(s.Text) && (settings.MinAmount == 0 ||
-                                                                       (s.Amount >= settings.MinAmount && s.Currency.Equals(settings.Currency, StringComparison.OrdinalIgnoreCase))));
+            .OfType<ShoutoutViewModel>()
+            .Where(s => !string.IsNullOrEmpty(s.Text) && (settings.MinAmount == 0 ||
+                    (s.Amount >= settings.MinAmount && s.Currency?.Equals(settings.Currency, StringComparison.OrdinalIgnoreCase) is true)));
 
-        var vm = GetPublicViewModel(app, new ShoutoutViewModel(), shoutouts.ToList());
+        var vm = await GetPublicViewModel(app, new ShoutoutViewModel(), shoutouts.ToList());
+        vm.Count = count;
+        vm.Skip = skip;
         return View(vm);
     }
 
@@ -171,22 +171,23 @@ public class UIShoutoutController(
     [DomainMappingConstraint(ShoutoutApp.AppType)]
     [RateLimitsFilter(ZoneLimits.PublicInvoices, Scope = RateLimitsScope.RemoteAddress)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
-    public async Task<IActionResult> Public(string appId, ShoutoutViewModel shoutout)
+    public async Task<IActionResult> Public(string appId, ShoutoutViewModel? shoutout)
     {
         var app = await appService.GetApp(appId, ShoutoutApp.AppType, true);
         if (app == null)
             return NotFound();
 
+        shoutout ??= new ShoutoutViewModel();
         if (!ModelState.IsValid)
         {
-            var vm = GetPublicViewModel(app, shoutout);
+            var vm = await GetPublicViewModel(app, shoutout);
             return View(vm);
         }
 
         var form = GetForm(shoutout);
         if (!formDataService.Validate(form, ModelState))
         {
-            var vm = GetPublicViewModel(app, shoutout);
+            var vm = await GetPublicViewModel(app, shoutout);
             return View(vm);
         }
 
@@ -212,7 +213,7 @@ public class UIShoutoutController(
             {
                 RedirectURL = orderUrl
             };
-            request.AdditionalSearchTerms = new[] { AppService.GetAppSearchTerm(app) };
+            request.AdditionalSearchTerms = [AppService.GetAppSearchTerm(app)];
             var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), new List<string> { AppService.GetAppInternalTag(appId) });
 
             return RedirectToAction(nameof(UIInvoiceController.Checkout), "UIInvoice", new { invoiceId = invoice.Id });
@@ -229,27 +230,27 @@ public class UIShoutoutController(
         }
     }
 
-    private Form GetForm(ShoutoutViewModel shoutout)
+    private static Form GetForm(ShoutoutViewModel shoutout)
     {
         var shoutoutFields = Field.CreateFieldset();
         shoutoutFields.Name = "shoutout";
         shoutoutFields.Label = "Shoutout";
-        shoutoutFields.Fields = new List<Field>
-        {
+        shoutoutFields.Fields =
+        [
             Field.Create("Name", "name", shoutout.Name, false, null),
-            Field.Create("Text", "text", shoutout.Text, true, null),
-        };
+            Field.Create("Text", "text", shoutout.Text, true, null)
+        ];
         return new Form
         {
-            Fields = new List<Field>
-            {
+            Fields =
+            [
                 shoutoutFields,
                 Field.Create("Amount", "invoice_amount", shoutout.Amount.ToString(CultureInfo.InvariantCulture), true, null)
-            }
+            ]
         };
     }
 
-    private PublicViewModel GetPublicViewModel(AppData app, ShoutoutViewModel shoutout = null, List<ShoutoutViewModel> shoutouts = null)
+    private async Task<PublicViewModel> GetPublicViewModel(AppData app, ShoutoutViewModel shoutout, List<ShoutoutViewModel>? shoutouts = null)
     {
         var store = app.StoreData;
         var storeBlob = store.GetStoreBlob();
@@ -259,8 +260,8 @@ public class UIShoutoutController(
             AppId = app.Id,
             StoreName = store.StoreName,
             BrandColor = storeBlob.BrandColor,
-            CssFileId = storeBlob.CssFileId,
-            LogoFileId = storeBlob.LogoFileId,
+            CssUrl = storeBlob.CssUrl == null ? null : await uriResolver.Resolve(Request.GetAbsoluteRootUri(), storeBlob.CssUrl),
+            LogoUrl = storeBlob.LogoUrl == null ? null : await uriResolver.Resolve(Request.GetAbsoluteRootUri(), storeBlob.LogoUrl),
             StoreId = store.Id,
             Title = settings.Title,
             Currency = settings.Currency,
@@ -270,14 +271,14 @@ public class UIShoutoutController(
             ButtonText = settings.ButtonText,
             MinAmount = settings.MinAmount,
             LightningAddress = settings.LightningAddressIdentifier,
-            StoreBranding = new StoreBrandingViewModel(storeBlob),
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, storeBlob),
             LnurlEnabled = shoutoutService.IsLnurlEnabled(store),
             Shoutout = shoutout,
             Shoutouts = shoutouts
         };
     }
 
-    private static string GetStoreDefaultCurrentIfEmpty(StoreBlob storeBlob, string currency)
+    private static string GetStoreDefaultCurrentIfEmpty(StoreBlob storeBlob, string? currency)
     {
         if (string.IsNullOrWhiteSpace(currency))
         {
@@ -288,7 +289,7 @@ public class UIShoutoutController(
 
     private static string GetSearchTerm(AppData app) => $"appid:{app.Id}";
 
-    private StoreData GetCurrentStore() => HttpContext.GetStoreData();
+    private StoreData? GetCurrentStore() => HttpContext.GetStoreData();
 
-    private AppData GetCurrentApp() => HttpContext.GetAppData();
+    private AppData? GetCurrentApp() => HttpContext.GetAppData();
 }

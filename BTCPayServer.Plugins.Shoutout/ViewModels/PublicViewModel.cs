@@ -7,37 +7,37 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels;
 
 public class PublicViewModel : BasePagingViewModel
 {
-    public string LogoFileId { get; set; }
-    public string CssFileId { get; set; }
-    public string BrandColor { get; set; }
-    public string StoreName { get; set; }
-    public string Title { get; set; }
-    public string AppId { get; set; }
-    public string Description { get; set; }
-    public string StoreId { get; set; }
-    public string Currency { get; set; }
-    public string LightningAddress { get; set; }
-    public bool LnurlEnabled { get; set; }
-    public StoreBrandingViewModel StoreBranding { get; set; }
-    public ShoutoutViewModel Shoutout { get; set; }
-    public List<ShoutoutViewModel> Shoutouts { get; set; }
-    public override int CurrentPageCount => Shoutouts.Count;
-    public bool ShowHeader { get; set; }
-    public bool ShowRelativeDate { get; set; }
-    public string ButtonText { get; set; }
-    public decimal MinAmount { get; set; }
+    public string? LogoUrl { get; init; }
+    public string? CssUrl { get; init; }
+    public string? BrandColor { get; init; }
+    public string? StoreName { get; init; }
+    public string? Title { get; init; }
+    public string? AppId { get; init; }
+    public string? Description { get; init; }
+    public string? StoreId { get; init; }
+    public string? Currency { get; init; }
+    public string? LightningAddress { get; init; }
+    public bool LnurlEnabled { get; init; }
+    public override int CurrentPageCount => Shoutouts?.Count ?? 0;
+    public bool ShowHeader { get; init; }
+    public bool ShowRelativeDate { get; init; }
+    public string? ButtonText { get; init; }
+    public decimal MinAmount { get; init; }
+    public StoreBrandingViewModel? StoreBranding { get; init; }
+    public List<ShoutoutViewModel>? Shoutouts { get; init; }
+    public ShoutoutViewModel Shoutout { get; init; } = null!;
 }
 
 public class ShoutoutViewModel
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [Required]
-    public string Text { get; set; }
+    public string? Text { get; set; }
 
     [Required]
     [Range(0.01, 2100000000000)]
     public decimal Amount { get; set; }
-    public string Currency { get; set; }
+    public string? Currency { get; set; }
     public DateTimeOffset Timestamp { get; set; }
 }

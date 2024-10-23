@@ -2,12 +2,12 @@ namespace BTCPayServer.Plugins.Shoutout;
 
 public class ShoutoutSettings
 {
-    public string Title { get; set; }
-    public string Currency { get; set; }
-    public string Description { get; set; }
-    public string LightningAddressIdentifier { get; set; }
-    public bool ShowHeader { get; set; } = true;
-    public bool ShowRelativeDate { get; set; } = true;
-    public string ButtonText { get; set; } = "Shoutout!";
-    public decimal MinAmount { get; set; }
+    public string? Title { get; init; }
+    public string? Currency { get; init; }
+    public string? Description { get; init; }
+    public string? LightningAddressIdentifier { get; init; }
+    public bool ShowHeader { get; init; } = true;
+    public bool ShowRelativeDate { get; init; } = true;
+    public string? ButtonText { get; init; } = "Shoutout!";
+    public decimal MinAmount { get; init; }
 }

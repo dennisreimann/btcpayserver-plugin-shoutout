@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using BTCPayServer.Data;
 using BTCPayServer.Lightning;
 using BTCPayServer.Payments;
 using BTCPayServer.Payments.Lightning;
 using BTCPayServer.Plugins.Shoutout.Controllers.API;
+using BTCPayServer.Services.Invoices;
 using LNURL;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -16,7 +16,8 @@ namespace BTCPayServer.Plugins.Shoutout.Services;
 
 public class ShoutoutService(
     LinkGenerator linkGenerator,
-    BTCPayNetworkProvider networkProvider)
+    BTCPayNetworkProvider networkProvider,
+    PaymentMethodHandlerDictionary pmHandlers)
 {
     private const string CryptoCode = "BTC";
     internal const int CommentLength = 2000;
@@ -25,19 +26,16 @@ public class ShoutoutService(
 
     public BTCPayNetwork Network => networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
 
-    public PaymentMethodId GetLnurlPaymentMethodId(StoreData store, out LNURLPaySupportedPaymentMethod lnurlSettings)
+    public PaymentMethodId? GetLnurlPaymentMethodId(StoreData store, out LNURLPaymentMethodConfig? lnurlSettings)
     {
         lnurlSettings = null;
-        var pmi = new PaymentMethodId(CryptoCode, PaymentTypes.LNURLPay);
-        var lnpmi = new PaymentMethodId(CryptoCode, PaymentTypes.LightningLike);
-        var methods = store.GetSupportedPaymentMethods(networkProvider);
-        var lnUrlMethod = methods.FirstOrDefault(method => method.PaymentId == pmi) as LNURLPaySupportedPaymentMethod;
-        var lnMethod = methods.FirstOrDefault(method => method.PaymentId == lnpmi);
-        if (lnUrlMethod is null || lnMethod is null)
-            return null;
+        var pmi = PaymentTypes.LNURL.GetPaymentMethodId(CryptoCode);
+        var lnpmi = PaymentTypes.LN.GetPaymentMethodId(CryptoCode);
+        var lnUrlMethod = store.GetPaymentMethodConfig<LNURLPaymentMethodConfig>(pmi, pmHandlers);
+        var lnMethod = store.GetPaymentMethodConfig<LightningPaymentMethodConfig>(lnpmi, pmHandlers);
+        if (lnUrlMethod is null || lnMethod is null) return null;
         var blob = store.GetStoreBlob();
-        if (blob.GetExcludedPaymentMethods().Match(pmi) || blob.GetExcludedPaymentMethods().Match(lnpmi))
-            return null;
+        if (blob.GetExcludedPaymentMethods().Match(pmi) || blob.GetExcludedPaymentMethods().Match(lnpmi)) return null;
         lnurlSettings = lnUrlMethod;
         return pmi;
     }
@@ -60,8 +58,7 @@ public class ShoutoutService(
 
     public bool IsLnurlEnabled(StoreData store)
     {
-        var pmi = GetLnurlPaymentMethodId(store, out var lnurlSettings);
-        var isEnabled = pmi != null && lnurlSettings.LUD12Enabled;
-        return isEnabled;
+        GetLnurlPaymentMethodId(store, out var lnurlSettings);
+        return lnurlSettings?.LUD12Enabled is true;
     }
 }
