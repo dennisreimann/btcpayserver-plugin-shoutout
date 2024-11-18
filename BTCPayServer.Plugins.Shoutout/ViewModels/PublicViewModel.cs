@@ -30,14 +30,18 @@ public class PublicViewModel : BasePagingViewModel
 
 public class ShoutoutViewModel
 {
+    [Display(Name = "Name")]
     public string? Name { get; set; }
 
     [Required]
+    [Display(Name = "Text")]
     public string? Text { get; set; }
 
     [Required]
     [Range(0.01, 2100000000000)]
+    [Display(Name = "Amount")]
     public decimal Amount { get; set; }
+    [Display(Name = "Currency")]
     public string? Currency { get; set; }
     public DateTimeOffset Timestamp { get; set; }
 }

@@ -7,6 +7,7 @@
 @inject BTCPayServerEnvironment env
 @{
     var title = string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title;
+    var lightingAddress = Model.LnurlEnabled && string.IsNullOrEmpty(Model.LightningAddress) ? null : $"{Model.LightningAddress}@{Context.Request.Host}";
     ViewData["Title"] = title;
     ViewData["StoreBranding"] = Model.StoreBranding;
     Layout = null;
@@ -65,9 +66,8 @@
                         <input type="submit" class="btn btn-primary" name="command" value="@Safe.Raw(Model.ButtonText)"/>
                     </div>
                 </form>
-                @if (Model.LnurlEnabled)
+                @if (!string.IsNullOrEmpty(lightingAddress))
                 {
-                    var lightingAddress = string.IsNullOrEmpty(Model.LightningAddress) ? null : $"{Model.LightningAddress}@{Context.Request.Host}";
                     <p class="text-center text-muted mt-n3">
                         You can also send your shoutout to the Lightning&nbsp;Address
                         <a href="lightning:@lightingAddress">@lightingAddress</a>

@@ -19,16 +19,20 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels
         [Display(Name = "Display Title")]
         public string? Title { get; init; }
         [MaxLength(5)]
+        [Display(Name = "Currency")]
         public string? Currency { get; set; }
 
         public string? Id { get; init; }
         public string? AppId { get; init; }
         public string? SearchTerm { get; init; }
+        [Display(Name = "Description")]
         public string? Description { get; init; }
 
         [Display(Name = "Lightning Address Identifier")]
         public string? LightningAddressIdentifier { get; init; }
+        [Display(Name = "Enable LNURL")]
         public bool LnurlEnabled { get; init; }
+        [Display(Name = "Archived")]
         public bool Archived { get; init; }
 
         [Display(Name = "Show the store header")]

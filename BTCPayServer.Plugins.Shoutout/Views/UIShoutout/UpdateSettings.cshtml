@@ -1,9 +1,11 @@
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.Plugins.Shoutout.Services
 @using BTCPayServer.Views.Apps
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject Security.ContentSecurityPolicies Csp
 @model BTCPayServer.Plugins.Shoutout.ViewModels.UpdateSettingsViewModel
 @{
-    ViewData.SetActivePage(AppsNavPages.Update, "Update Shoutout", Model.Id);
+    ViewData.SetActivePage(AppsNavPages.Update, StringLocalizer["Update Shoutout"], Model.Id);
 	Csp.UnsafeEval();
     var storeId = Context.GetCurrentStoreId();
 }
@@ -19,17 +21,17 @@
 
 
 <form method="post" class="mb-5">
-    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="sticky-header">
+        <h2>@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <button type="submit" class="btn btn-primary order-sm-1" id="SaveSettings">Save</button>
+            <button type="submit" class="btn btn-primary order-sm-1" id="SaveSettings" text-translate="true">Save</button>
             @if (Model.Archived)
             {
-                <button type="submit" class="btn btn-outline-secondary" name="Archived" value="False">Unarchive</button>
+                <button type="submit" class="btn btn-outline-secondary" name="Archived" value="False" text-translate="true">Unarchive</button>
             }
             else
             {
-                <a class="btn btn-secondary" asp-controller="UIShoutout" asp-action="Public" asp-route-appId="@Model.Id" id="ViewApp" target="_blank">View</a>
+                <a class="btn btn-secondary" asp-controller="UIShoutout" asp-action="Public" asp-route-appId="@Model.Id" id="ViewApp" target="_blank" text-translate="true">View</a>
             }
         </div>
     </div>
@@ -67,14 +69,10 @@
                             <span class="input-group-text">@@@Context.Request.Host</span>
                         </div>
                         <div class="form-text">
-                            Optional Lightning Address that receives shoutouts.
+                            <span text-translate="true">Optional Lightning Address that receives shoutouts.</span>
                             @if (!Model.LnurlEnabled)
                             {
-                                <span>
-                                    In order to use the Lightning Address option, Lightning must be available and LNURL
-                                    needs to be enabled (including the comment option). It can be set up in the
-                                    <a asp-controller="UIStores" asp-action="LightningSettings" asp-route-cryptoCode="BTC" asp-route-storeId="@storeId" class="alert-link">Lightning Settings</a>.
-                                </span>
+                                <span>@ViewLocalizer["In order to use the Lightning Address option, Lightning must be available and LNURL needs to be enabled (including the comment option). It can be set up in the {0}.", Html.ActionLink(StringLocalizer["Lightning Settings"], "LightningSettings", "UIStores", new { storeId, cryptoCode = ShoutoutService.CryptoCode }, new { @class = "alert-link" })]</span>
                             }
                         </div>
                         <span asp-validation-for="LightningAddressIdentifier" class="text-danger"></span>
@@ -86,7 +84,7 @@
                     <div class="form-group">
                         <label asp-for="Currency" class="form-label"></label>
                         <input asp-for="Currency" class="form-control w-auto" currency-selection />
-                        <div class="form-text">Uses the store's default currency (@Model.StoreDefaultCurrency) if empty.</div>
+                        <div class="form-text">@StringLocalizer["Uses the store's default currency ({0}) if empty.", Model.StoreDefaultCurrency]</div>
                         <span asp-validation-for="Currency" class="text-danger"></span>
                     </div>
                 </div>
@@ -104,7 +102,7 @@
     </div>
     <div class="row mt-5">
         <div class="col-xl-8 col-xxl-constrain">
-            <h3 class="mb-3">Additional Options</h3>
+            <h3 class="mb-3" text-translate="true">Additional Options</h3>
             <div class="form-group d-flex align-items-center pt-2">
                 <input asp-for="ShowHeader" type="checkbox" class="btcpay-toggle me-3" />
                 <label asp-for="ShowHeader" class="form-label mb-0"></label>
@@ -133,20 +131,20 @@
 </form>
 
 <div class="d-flex gap-3 mt-3">
-    <a class="btn btn-secondary" asp-action="ListInvoices" asp-controller="UIInvoice" asp-route-storeId="@Model.StoreId" asp-route-searchterm="@Model.SearchTerm">Invoices</a>
+    <a class="btn btn-secondary" asp-action="ListInvoices" asp-controller="UIInvoice" asp-route-storeId="@Model.StoreId" asp-route-searchterm="@Model.SearchTerm" text-translate="true">Invoices</a>
     <form method="post" asp-controller="UIApps" asp-action="ToggleArchive" asp-route-appId="@Model.Id">
         <button type="submit" class="btn btn-outline-secondary" id="btn-archive-toggle">
             @if (Model.Archived)
             {
-                <span class="text-nowrap">Unarchive this app</span>
+                <span class="text-nowrap" text-translate="true">Unarchive this app</span>
             }
             else
             {
-                <span class="text-nowrap" data-bs-toggle="tooltip" title="Archive this app so that it does not appear in the apps list by default">Archive this app</span>
+                <span class="text-nowrap" data-bs-toggle="tooltip" title="@StringLocalizer["Archive this app so that it does not appear in the apps list by default"]" text-translate="true">Archive this app</span>
             }
         </button>
     </form>
-    <a id="DeleteApp" class="btn btn-outline-danger" asp-controller="UIApps" asp-action="DeleteApp" asp-route-appId="@Model.Id" data-bs-toggle="modal" data-bs-target="#ConfirmModal" data-description="The app <strong>@Html.Encode(Model.AppName)</strong> and its settings will be permanently deleted." data-confirm-input="DELETE">Delete this app</a>
+    <a id="DeleteApp" class="btn btn-outline-danger" asp-controller="UIApps" asp-action="DeleteApp" asp-route-appId="@Model.Id" data-bs-toggle="modal" data-bs-target="#ConfirmModal" data-description="@StringLocalizer["The app <strong>{0}</strong> and its settings will be permanently deleted.", Html.Encode(Model.AppName)]" data-confirm-input="@StringLocalizer["DELETE"]" text-translate="true">Delete this app</a>
 </div>
 
-<partial name="_Confirm" model="@(new ConfirmModel("Delete app", "This app will be removed from this store.", "Delete"))" />
+<partial name="_Confirm" model="@(new ConfirmModel(StringLocalizer["Delete app"], StringLocalizer["This app will be removed from this store."], StringLocalizer["Delete"]))" />
