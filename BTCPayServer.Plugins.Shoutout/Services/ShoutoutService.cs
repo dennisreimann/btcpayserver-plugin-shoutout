@@ -19,7 +19,7 @@ public class ShoutoutService(
     BTCPayNetworkProvider networkProvider,
     PaymentMethodHandlerDictionary pmHandlers)
 {
-    private const string CryptoCode = "BTC";
+    internal const string CryptoCode = "BTC";
     internal const int CommentLength = 2000;
     internal static readonly LightMoney MinSendable = new(1, LightMoneyUnit.Satoshi);
     internal static readonly LightMoney MaxSendable = LightMoney.FromUnit(6.12m, LightMoneyUnit.BTC);

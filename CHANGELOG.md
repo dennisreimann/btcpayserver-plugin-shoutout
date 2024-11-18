@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [![Support this plugin](./docs/img/support.png)](lightning:LNURL1DP68GURN8GHJ7AMPD3KX2AR0VEEKZAR0WD5XJTNRDAKJ7TNHV4KXCTTTDEHHWM30D3H82UNVWQHKXUN0WAJX2ER9V9E8G6PN8QSKVTEZ)
 
+## [2.0.1]
+
+### Fixed
+
+- Compatibility updates for BTCPay Server v2.0.3
+
 ## [2.0.0]
 
 ### Changed

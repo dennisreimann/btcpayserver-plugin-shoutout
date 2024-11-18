@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Configuration;
 using BTCPayServer.Data;
-using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Plugins.Shoutout.Controllers;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
@@ -23,13 +22,13 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
     public const string AppType = "Shoutout";
     public const string ItemCode = "shoutout";
 
-    private static readonly ViewPointOfSaleViewModel.Item[] Items =
+    private static readonly AppItem[] Items =
     [
         new()
         {
             Id = ItemCode,
             Title = "Shoutout",
-            PriceType = ViewPointOfSaleViewModel.ItemPriceType.Topup
+            PriceType = AppItemPriceType.Topup
         }
     ];
 
@@ -85,7 +84,7 @@ public class ShoutoutApp : AppBaseType, IHasSaleStatsAppType, IHasItemStatsAppTy
         var itemCount = paidInvoices
             .Where(entity => entity.Metadata.ItemCode == ItemCode &&
                              entity.Currency.Equals(settings.Currency, StringComparison.OrdinalIgnoreCase))
-            .Aggregate(new List<AppService.InvoiceStatsItem>(), AppService.AggregateInvoiceEntitiesForStats(Items))
+            .Aggregate([], AppService.AggregateInvoiceEntitiesForStats(Items))
             .GroupBy(entity => entity.ItemCode)
             .Select(entities =>
             {
