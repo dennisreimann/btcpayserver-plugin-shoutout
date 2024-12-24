@@ -29,7 +29,6 @@ public class LnurlController(
     UIInvoiceController invoiceController,
     InvoiceRepository invoiceRepository,
     EventAggregator eventAggregator,
-    LightningLikePaymentHandler lightningLikePaymentHandler,
     LinkGenerator linkGenerator,
     IPluginHookService pluginHookService,
     PaymentMethodHandlerDictionary pmHandlers)
@@ -136,7 +135,7 @@ public class LnurlController(
             var storeBlob = store.GetStoreBlob();
             try
             {
-                var client = lightningLikePaymentHandler.CreateLightningClient(lnConfig);
+                var client = pmHandlers.GetLightningHandler(network).CreateLightningClient(lnConfig);
                 var expiry = invoice.ExpirationTime.ToUniversalTime() - DateTimeOffset.UtcNow;
                 var param = new CreateInvoiceParams(lightMoney, description, expiry)
                 {
