@@ -10,4 +10,5 @@ public class ShoutoutSettings
     public bool ShowRelativeDate { get; init; } = true;
     public string? ButtonText { get; init; } = "Shoutout!";
     public decimal MinAmount { get; init; }
+    public string[] ExcludeInvoiceId { get; set; } = [];
 }

@@ -47,5 +47,8 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels
 
         [Display(Name = "Minimum amount required for displaying the shoutout")]
         public decimal MinAmount { get; init; }
+
+        [Display(Name = "Exclude invoices by ID")]
+        public string? ExcludeInvoiceId { get; init; }
     }
 }

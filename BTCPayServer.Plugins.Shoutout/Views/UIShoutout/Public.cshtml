@@ -1,6 +1,9 @@
 @using BTCPayServer.Abstractions.Services
+@using BTCPayServer.Client
 @using BTCPayServer.Components
 @using BTCPayServer.Services
+@using BTCPayServer.TagHelpers
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model BTCPayServer.Plugins.Shoutout.ViewModels.PublicViewModel
 @inject Safe Safe
 @inject DisplayFormatter DisplayFormatter
@@ -78,12 +81,15 @@
                     <div id="shoutouts" class="d-flex flex-column justify-content-center gap-4">
                         @if (Model.Shoutouts.Any())
                         {
-                            @foreach (var entry in Model.Shoutouts)
+                            @foreach (var entry in Model.Shoutouts.Where(entry => !entry.Hidden || Model.CanManage))
                             {
-                                <div class="card">
+                                <div class="card@(entry.Hidden ? " opacity-50" : "")">
                                     <h6 class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom-0 pb-0">
                                         <span>@(string.IsNullOrEmpty(entry.Name) ? "Anonymous" : entry.Name)</span>
                                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                            <a asp-controller="UIShoutout" asp-action="ToggleExclude" asp-route-appId="@Model.AppId" asp-route-invoiceId="@entry.InvoiceId" asp-route-skip="@Model.Skip" asp-route-count="@Model.Count" permission="@Policies.CanModifyStoreSettings" class="d-print-none">
+                                                @(entry.Hidden ? StringLocalizer["Show"] : StringLocalizer["Hide"])
+                                            </a>
                                             <span class="badge bg-light fs-6">
                                                 @DisplayFormatter.Currency(entry.Amount, entry.Currency, DisplayFormatter.CurrencyFormat.Symbol)
                                             </span>
@@ -112,6 +118,11 @@
             </div>
         </main>
         <footer class="store-footer">
+            <p permission="@Policies.CanModifyStoreSettings" class="d-print-none">
+                <a asp-controller="UIShoutout" asp-action="UpdateSettings" asp-route-appId="@Model.AppId" text-translate="true">
+                    Edit @title
+                </a>
+            </p>
             <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
                 <span text-translate="true">Powered by</span> <partial name="_StoreFooterLogo" />
             </a>

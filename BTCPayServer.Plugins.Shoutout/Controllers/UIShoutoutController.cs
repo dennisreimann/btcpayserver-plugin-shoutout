@@ -16,6 +16,7 @@ using BTCPayServer.Forms;
 using BTCPayServer.Models;
 using BTCPayServer.Plugins.Shoutout.Services;
 using BTCPayServer.Plugins.Shoutout.ViewModels;
+using BTCPayServer.Security;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Invoices;
@@ -24,6 +25,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using NicolasDorier.RateLimits;
 using StoreData = BTCPayServer.Data.StoreData;
 
@@ -33,13 +35,17 @@ namespace BTCPayServer.Plugins.Shoutout.Controllers;
 public class UIShoutoutController(
     AppService appService,
     UriResolver uriResolver,
-    ShoutoutService shoutoutService,
     CurrencyNameTable currencies,
+    ShoutoutService shoutoutService,
     FormDataService formDataService,
+    IStringLocalizer stringLocalizer,
     InvoiceRepository invoiceRepository,
-    UIInvoiceController invoiceController)
+    UIInvoiceController invoiceController,
+    IAuthorizationService authorizationService)
     : Controller
 {
+    public IStringLocalizer StringLocalizer { get; } = stringLocalizer;
+
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [HttpGet("{appId}/settings/shoutout")]
     public IActionResult UpdateSettings(string appId)
@@ -71,7 +77,8 @@ public class UIShoutoutController(
             MinAmount = settings.MinAmount,
             ButtonText = settings.ButtonText,
             LightningAddressIdentifier = settings.LightningAddressIdentifier,
-            LnurlEnabled = shoutoutService.IsLnurlEnabled(store)
+            LnurlEnabled = shoutoutService.IsLnurlEnabled(store),
+            ExcludeInvoiceId = ListToString(settings.ExcludeInvoiceId)
         };
         return View(vm);
     }
@@ -82,7 +89,8 @@ public class UIShoutoutController(
     {
         var app = GetCurrentApp();
         var store = GetCurrentStore();
-        if (app == null || store == null) return NotFound();
+        if (app == null || store == null)
+            return NotFound();
 
         if (!ModelState.IsValid)
             return View(vm);
@@ -90,12 +98,10 @@ public class UIShoutoutController(
         var storeBlob = store.GetStoreBlob();
         vm.Currency = GetStoreDefaultCurrentIfEmpty(storeBlob, vm.Currency);
         if (currencies.GetCurrencyData(vm.Currency, false) == null)
-            ModelState.AddModelError(nameof(vm.Currency), "Invalid currency");
+            ModelState.AddModelError(nameof(vm.Currency), StringLocalizer["Invalid currency"]);
 
         if (!ModelState.IsValid)
-        {
             return View(vm);
-        }
 
         var settings = new ShoutoutSettings
         {
@@ -106,15 +112,36 @@ public class UIShoutoutController(
             ShowRelativeDate = vm.ShowRelativeDate,
             MinAmount = vm.MinAmount,
             ButtonText = vm.ButtonText,
-            LightningAddressIdentifier = vm.LightningAddressIdentifier
+            LightningAddressIdentifier = vm.LightningAddressIdentifier,
+            ExcludeInvoiceId = StringToList(vm.ExcludeInvoiceId)
         };
 
         app.Name = vm.AppName;
         app.Archived = vm.Archived;
         app.SetSettings(settings);
         await appService.UpdateOrCreateApp(app);
-        TempData[WellKnownTempData.SuccessMessage] = "The settings have been updated";
+        TempData[WellKnownTempData.SuccessMessage] = StringLocalizer["The settings have been updated"].Value;
         return RedirectToAction(nameof(UpdateSettings), new { appId });
+    }
+
+    [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    [HttpGet("{appId}/settings/shoutout/toggle/{invoiceId}")]
+    public async Task<IActionResult> ToggleExclude(string appId, string invoiceId, int? skip, int? count)
+    {
+        var app = GetCurrentApp();
+        var store = GetCurrentStore();
+        if (app == null || store == null)
+            return NotFound();
+
+        var settings = app.GetSettings<ShoutoutSettings>();
+        var exclude = !settings.ExcludeInvoiceId.Contains(invoiceId);
+        settings.ExcludeInvoiceId = exclude
+            ? settings.ExcludeInvoiceId.Prepend(invoiceId).ToArray()
+            : settings.ExcludeInvoiceId.Where(i => i != invoiceId).ToArray();
+        app.SetSettings(settings);
+        await appService.UpdateOrCreateApp(app);
+        TempData[WellKnownTempData.SuccessMessage] = StringLocalizer["The shoutout {0} has been {1}",invoiceId, exclude ? StringLocalizer["hidden"] : StringLocalizer["shown"]].Value;
+        return RedirectToAction(nameof(Public), new { appId, skip, count });
     }
 
     [HttpGet("/")]
@@ -150,8 +177,10 @@ public class UIShoutoutController(
                     Amount = i.PaidAmount.Net > 0 ? i.PaidAmount.Net : i.Price,
                     Currency = i.Currency,
                     Timestamp = i.InvoiceTime,
+                    InvoiceId = i.Id,
                     Name = shoutout["name"]?.ToString(),
-                    Text = shoutout["text"]?.ToString()
+                    Text = shoutout["text"]?.ToString(),
+                    Hidden = settings.ExcludeInvoiceId.Contains(i.Id)
                 }
                 : null)
             .OfType<ShoutoutViewModel>()
@@ -159,6 +188,8 @@ public class UIShoutoutController(
                     (s.Amount >= settings.MinAmount && s.Currency?.Equals(settings.Currency, StringComparison.OrdinalIgnoreCase) is true)));
 
         var vm = await GetPublicViewModel(app, new ShoutoutViewModel(), shoutouts.ToList());
+        vm.CanManage = (await authorizationService.AuthorizeAsync(HttpContext.User, null,
+            new PolicyRequirement(Policies.CanModifyStoreSettings))).Succeeded;
         vm.Count = count;
         vm.Skip = skip;
         return View(vm);
@@ -214,7 +245,7 @@ public class UIShoutoutController(
                 RedirectURL = orderUrl
             };
             request.AdditionalSearchTerms = [AppService.GetAppSearchTerm(app)];
-            var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), new List<string> { AppService.GetAppInternalTag(appId) });
+            var invoice = await invoiceController.CreateInvoiceCoreRaw(request, store,Request.GetAbsoluteRoot(), [AppService.GetAppInternalTag(appId)]);
 
             return RedirectToAction(nameof(UIInvoiceController.Checkout), "UIInvoice", new { invoiceId = invoice.Id });
         }
@@ -288,6 +319,12 @@ public class UIShoutoutController(
     }
 
     private static string GetSearchTerm(AppData app) => $"appid:{app.Id}";
+
+    private static string ListToString(string[] list) => string.Join(',', list);
+
+    private static string[] StringToList(string? str) => !string.IsNullOrEmpty(str)
+        ? str.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        : [];
 
     private StoreData? GetCurrentStore() => HttpContext.GetStoreData();
 
