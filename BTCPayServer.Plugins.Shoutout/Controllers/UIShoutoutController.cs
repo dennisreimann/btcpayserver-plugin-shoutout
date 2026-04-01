@@ -326,7 +326,7 @@ public class UIShoutoutController(
         ? str.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         : [];
 
-    private StoreData? GetCurrentStore() => HttpContext.GetStoreData();
+    private StoreData? GetCurrentStore() => HttpContext.GetStoreDataOrNull();
 
     private AppData? GetCurrentApp() => HttpContext.GetAppData();
 }

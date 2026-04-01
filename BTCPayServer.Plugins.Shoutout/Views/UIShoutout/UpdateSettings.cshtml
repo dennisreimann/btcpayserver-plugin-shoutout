@@ -5,7 +5,8 @@
 @inject Security.ContentSecurityPolicies Csp
 @model BTCPayServer.Plugins.Shoutout.ViewModels.UpdateSettingsViewModel
 @{
-    ViewData.SetActivePage(AppsNavPages.Update, StringLocalizer["Update Shoutout"], Model.Id);
+    ViewData.SetLayoutModel(new LayoutModel($"{nameof(AppsNavPages.Update)}-{Model.Id}", StringLocalizer["Update Shoutout"]).SetCategory(WellKnownCategories.Store));
+
 	Csp.UnsafeEval();
     var storeId = Context.GetCurrentStoreId();
 }

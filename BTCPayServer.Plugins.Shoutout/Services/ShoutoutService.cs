@@ -24,7 +24,7 @@ public class ShoutoutService(
     internal static readonly LightMoney MinSendable = new(1, LightMoneyUnit.Satoshi);
     internal static readonly LightMoney MaxSendable = LightMoney.FromUnit(6.12m, LightMoneyUnit.BTC);
 
-    public BTCPayNetwork Network => networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
+    public BTCPayNetwork? Network => networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
 
     public PaymentMethodId? GetLnurlPaymentMethodId(StoreData store, out LNURLPaymentMethodConfig? lnurlSettings)
     {
