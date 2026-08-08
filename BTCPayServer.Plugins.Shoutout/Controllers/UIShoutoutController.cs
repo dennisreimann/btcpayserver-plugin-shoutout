@@ -164,8 +164,8 @@ public class UIShoutoutController(
             IncludeArchived = true,
             StoreId = [store.Id],
             TextSearch = AppService.GetAppSearchTerm(app),
-            StartDate = fs.GetFilterDate("startdate", 0),
-            EndDate = fs.GetFilterDate("enddate", 0),
+            StartDate = fs.GetFilterDate("startdate"),
+            EndDate = fs.GetFilterDate("enddate"),
             Status = [InvoiceStatus.Settled.ToString(), InvoiceStatus.Processing.ToString()]
         };
 

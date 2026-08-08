@@ -6,7 +6,7 @@ namespace BTCPayServer.Plugins.Shoutout.ViewModels
     {
         public string? StoreId { get; init; }
         public string? StoreName { get; init; }
-        public string? StoreDefaultCurrency { get; init; }
+        public string StoreDefaultCurrency { get; init; } = null!;
 
         [Required]
         [MaxLength(50)]

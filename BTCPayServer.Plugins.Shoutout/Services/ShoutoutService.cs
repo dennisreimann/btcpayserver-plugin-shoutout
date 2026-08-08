@@ -19,18 +19,17 @@ public class ShoutoutService(
     BTCPayNetworkProvider networkProvider,
     PaymentMethodHandlerDictionary pmHandlers)
 {
-    internal const string CryptoCode = "BTC";
     internal const int CommentLength = 2000;
     internal static readonly LightMoney MinSendable = new(1, LightMoneyUnit.Satoshi);
     internal static readonly LightMoney MaxSendable = LightMoney.FromUnit(6.12m, LightMoneyUnit.BTC);
 
-    public BTCPayNetwork? Network => networkProvider.GetNetwork<BTCPayNetwork>(CryptoCode);
+    public BTCPayNetwork Network => networkProvider.BTC;
 
     public PaymentMethodId? GetLnurlPaymentMethodId(StoreData store, out LNURLPaymentMethodConfig? lnurlSettings)
     {
         lnurlSettings = null;
-        var pmi = PaymentTypes.LNURL.GetPaymentMethodId(CryptoCode);
-        var lnpmi = PaymentTypes.LN.GetPaymentMethodId(CryptoCode);
+        var pmi = PaymentTypes.LNURL.GetPaymentMethodId(Network.CryptoCode);
+        var lnpmi = PaymentTypes.LN.GetPaymentMethodId(Network.CryptoCode);
         var lnUrlMethod = store.GetPaymentMethodConfig<LNURLPaymentMethodConfig>(pmi, pmHandlers);
         var lnMethod = store.GetPaymentMethodConfig<LightningPaymentMethodConfig>(lnpmi, pmHandlers);
         if (lnUrlMethod is null || lnMethod is null) return null;

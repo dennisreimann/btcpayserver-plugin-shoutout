@@ -73,7 +73,7 @@
                             <span text-translate="true">Optional Lightning Address that receives shoutouts.</span>
                             @if (!Model.LnurlEnabled)
                             {
-                                <span>@ViewLocalizer["In order to use the Lightning Address option, Lightning must be available and LNURL needs to be enabled (including the comment option). It can be set up in the {0}.", Html.ActionLink(StringLocalizer["Lightning Settings"], "LightningSettings", "UIStores", new { storeId, cryptoCode = ShoutoutService.CryptoCode }, new { @class = "alert-link" })]</span>
+                                <span>@ViewLocalizer["In order to use the Lightning Address option, Lightning must be available and LNURL needs to be enabled (including the comment option). It can be set up in the {0}.", Html.ActionLink(StringLocalizer["Lightning Settings"], "LightningSettings", "UIStores", new { storeId, cryptoCode = "BTC" }, new { @class = "alert-link" })]</span>
                             }
                         </div>
                         <span asp-validation-for="LightningAddressIdentifier" class="text-danger"></span>
